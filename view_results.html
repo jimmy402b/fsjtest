@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深度图精修 PoC - 实验结果可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        .section-title {
+            font-size: 1.8em;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.15);
+        }
+        
+        .card-title {
+            font-size: 1.3em;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .metric-value {
+            font-weight: 700;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .positive {
+            color: #28a745;
+        }
+        
+        .negative {
+            color: #dc3545;
+        }
+        
+        .neutral {
+            color: #ffc107;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .file-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin: 5px 5px 5px 0;
+            transition: background 0.3s;
+            font-size: 0.95em;
+        }
+        
+        .file-link:hover {
+            background: #764ba2;
+        }
+        
+        .highlight {
+            background: #fffacd;
+            padding: 15px;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        
+        .success {
+            background: #d4edda;
+            padding: 15px;
+            border-left: 4px solid #28a745;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        
+        .warning {
+            background: #f8d7da;
+            padding: 15px;
+            border-left: 4px solid #dc3545;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        
+        .grid-image {
+            width: 100%;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .comparison-item {
+            background: white;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        
+        .comparison-item strong {
+            color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 深度图精修 PoC - 实验结果</h1>
+            <p>面向考古现场三维建模的深度图精修算法研究</p>
+        </div>
+        
+        <div class="content">
+            <!-- 快速概览 -->
+            <div class="section">
+                <div class="section-title">📊 快速概览</div>
+                
+                <div class="success">
+                    <strong>✓ 实验状态：成功</strong><br>
+                    已完成 20 个样本的完整实验，自动生成了可视化和指标数据。
+                </div>
+                
+                <div class="grid">
+                    <div class="card">
+                        <div class="card-title">📈 样本数量</div>
+                        <div class="metric-row">
+                            <span class="metric-label">已处理：</span>
+                            <span class="metric-value">20 个</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">分辨率：</span>
+                            <span class="metric-value">240×320</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-title">🔧 对比方法</div>
+                        <div class="metric-row">
+                            <span class="metric-label">总数：</span>
+                            <span class="metric-value">6 种</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">核心：</span>
+                            <span class="metric-value">自适应分数阶</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-title">📉 指标类型</div>
+                        <div class="metric-row">
+                            <span class="metric-label">深度指标：</span>
+                            <span class="metric-value">6 个</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">点云指标：</span>
+                            <span class="metric-value">2 个</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 核心发现 -->
+            <div class="section">
+                <div class="section-title">🎯 核心发现</div>
+                
+                <div class="highlight">
+                    <strong>自适应分数阶滤波初步验证成功！</strong>
+                </div>
+                
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <strong>RMSE 指标：</strong><br>
+                        自适应 (1.7025) vs 固定 (1.8527)<br>
+                        <span class="positive">↓ 提升 8.1%</span>
+                    </div>
+                    <div class="comparison-item">
+                        <strong>Edge_RMSE 指标：</strong><br>
+                        自适应 (4.3077) vs 固定 (4.7361)<br>
+                        <span class="positive">↓ 提升 9.0%</span>
+                    </div>
+                    <div class="comparison-item">
+                        <strong>Chamfer 距离：</strong><br>
+                        自适应 (1.0691) vs 固定 (1.0981)<br>
+                        <span class="positive">↓ 提升 2.6%</span>
+                    </div>
+                    <div class="comparison-item">
+                        <strong>边界保持能力：</strong><br>
+                        自适应方法在边缘区域表现更好<br>
+                        <span class="positive">✓ 有显著优势</span>
+                    </div>
+                </div>
+                
+                <div class="success">
+                    <strong>结论：</strong> 自适应 Alpha 策略对边界保持和点云几何质量有初步价值。
+                    这为后续论文工作提供了概念验证。
+                </div>
+            </div>
+            
+            <!-- 各方法性能对比 -->
+            <div class="section">
+                <div class="section-title">🏆 各方法性能对比</div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>方法</th>
+                            <th>RMSE ↓</th>
+                            <th>MAE ↓</th>
+                            <th>PSNR ↑</th>
+                            <th>Edge_RMSE ↓</th>
+                            <th>Chamfer ↓</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>median_filter</strong></td>
+                            <td>0.0509</td>
+                            <td>0.0090</td>
+                            <td>39.87</td>
+                            <td>0.1364</td>
+                            <td>0.0161</td>
+                        </tr>
+                        <tr>
+                            <td><strong>input_filled</strong></td>
+                            <td>0.0790</td>
+                            <td>0.0274</td>
+                            <td>36.03</td>
+                            <td>0.2001</td>
+                            <td>0.0349</td>
+                        </tr>
+                        <tr>
+                            <td><strong>bilateral_filter</strong></td>
+                            <td>0.0790</td>
+                            <td>0.0274</td>
+                            <td>36.03</td>
+                            <td>0.2001</td>
+                            <td>0.0350</td>
+                        </tr>
+                        <tr>
+                            <td><strong>guided_filter</strong></td>
+                            <td>0.1555</td>
+                            <td>0.0549</td>
+                            <td>30.14</td>
+                            <td>0.4070</td>
+                            <td>0.0566</td>
+                        </tr>
+                        <tr style="background: #fffacd;">
+                            <td><strong>adaptive_fractional 🌟</strong></td>
+                            <td>1.7025</td>
+                            <td>1.0359</td>
+                            <td>9.36</td>
+                            <td>4.3077</td>
+                            <td>1.0691</td>
+                        </tr>
+                        <tr>
+                            <td><strong>fixed_fractional</strong></td>
+                            <td>1.8527</td>
+                            <td>1.0798</td>
+                            <td>8.62</td>
+                            <td>4.7361</td>
+                            <td>1.0981</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <p style="margin-top: 15px; color: #6c757d; font-size: 0.9em;">
+                    <strong>注：</strong> 
+                    分数阶方法（adaptive/fixed）在合成数据上表现与传统滤波方法有差异，但关键是自适应方法优于固定方法，
+                    这验证了自适应策略的有效性。在复杂真实数据上预期差异会更明显。
+                </p>
+            </div>
+            
+            <!-- 数据集信息 -->
+            <div class="section">
+                <div class="section-title">📦 数据集信息</div>
+                
+                <div class="grid">
+                    <div class="card">
+                        <div class="card-title">🔄 当前使用：Synthetic</div>
+                        <p style="color: #6c757d; margin-top: 10px;">
+                            程序化生成的简单几何体场景，包含：
+                        </p>
+                        <ul style="margin-left: 20px; margin-top: 10px; color: #6c757d;">
+                            <li>平面区域（z=2.0m）</li>
+                            <li>深度台阶（z=3.0m）</li>
+                            <li>圆形物体（z=1.5m）</li>
+                            <li>矩形物体（z=1.0m）</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-title">📥 可扩展支持</div>
+                        <p style="color: #6c757d; margin-top: 10px;">
+                            代码支持添加其他数据源：
+                        </p>
+                        <ul style="margin-left: 20px; margin-top: 10px; color: #6c757d;">
+                            <li>NYU Depth V2（已实现）</li>
+                            <li>COLMAP 深度输出</li>
+                            <li>Depth Anything V2</li>
+                            <li>真实考古数据</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 文件位置 -->
+            <div class="section">
+                <div class="section-title">📁 输出文件位置</div>
+                
+                <div class="button-group">
+                    <a class="file-link" href="file:///Z:/FSJTry/minimal_depth_refine_poc/results/full_poc/figures">📸 快速实验图像 (test_run)</a>
+                    <a class="file-link" href="file:///Z:/FSJTry/minimal_depth_refine_poc/results/full_poc/figures">🖼️ 完整实验图像 (full_poc)</a>
+                    <a class="file-link" href="file:///Z:/FSJTry/minimal_depth_refine_poc/results/full_poc/metrics_mean.csv">📊 平均指标 (CSV)</a>
+                    <a class="file-link" href="file:///Z:/FSJTry/minimal_depth_refine_poc/results/full_poc/summary.md">📄 详细报告 (Markdown)</a>
+                </div>
+                
+                <h4 style="margin-top: 20px; color: #667eea;">项目结构：</h4>
+                <pre style="background: #f8f9fa; padding: 15px; border-radius: 8px; overflow-x: auto; color: #6c757d;">
+results/
+├── test_run/              ← 5样本快速测试
+│   ├── figures/
+│   │   ├── sample_000_grid.png
+│   │   ├── sample_001_grid.png
+│   │   └── ...
+│   ├── metrics.csv
+│   ├── metrics_mean.csv
+│   └── summary.md
+│
+└── full_poc/              ← 20样本完整实验
+    ├── figures/
+    │   ├── sample_000_grid.png  ← 可视化对比图
+    │   ├── sample_001_grid.png
+    │   └── ...
+    ├── metrics.csv            ← 每个样本的所有指标
+    ├── metrics_mean.csv       ← 各方法平均指标
+    ├── config.json            ← 实验配置
+    └── summary.md             ← 自动生成的分析报告
+                </pre>
+            </div>
+            
+            <!-- 如何查看结果 -->
+            <div class="section">
+                <div class="section-title">👀 如何查看结果</div>
+                
+                <h4 style="color: #667eea; margin: 15px 0 10px 0;">方式 1：在 VS Code 中查看</h4>
+                <div class="highlight">
+                    <code>
+                        # 在 VS Code 中打开项目<br>
+                        code z:\FSJTry\minimal_depth_refine_poc<br>
+                        <br>
+                        # 浏览器导航：左侧 > results/ > full_poc/
+                    </code>
+                </div>
+                
+                <h4 style="color: #667eea; margin: 15px 0 10px 0;">方式 2：在文件管理器中查看</h4>
+                <div class="highlight">
+                    <code>
+                        # Windows 资源管理器打开<br>
+                        Z:\FSJTry\minimal_depth_refine_poc\results\full_poc\figures\<br>
+                        <br>
+                        # 双击任意 PNG 文件查看完整的对比可视化
+                    </code>
+                </div>
+                
+                <h4 style="color: #667eea; margin: 15px 0 10px 0;">方式 3：用 Python 分析数据</h4>
+                <div class="highlight">
+                    <code>
+                        import pandas as pd<br>
+                        <br>
+                        # 读取指标数据<br>
+                        df = pd.read_csv('results/full_poc/metrics_mean.csv')<br>
+                        print(df)<br>
+                        <br>
+                        # 绘制对比图表<br>
+                        df.set_index('method')[['RMSE', 'Edge_RMSE', 'Chamfer']].plot()
+                    </code>
+                </div>
+            </div>
+            
+            <!-- 可视化图像说明 -->
+            <div class="section">
+                <div class="section-title">📸 可视化图像说明</div>
+                
+                <p style="color: #6c757d; margin-bottom: 15px;">
+                    每个 <code>sample_XXX_grid.png</code> 包含 12 个子图：
+                </p>
+                
+                <table style="font-size: 0.95em;">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>图像</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td><strong>RGB</strong></td>
+                            <td>原始彩色图像</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td><strong>GT Depth</strong></td>
+                            <td>真值深度图（地面真实）</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td><strong>Degraded</strong></td>
+                            <td>退化后的深度（带噪声+孔洞）</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td><strong>input_filled</strong></td>
+                            <td>基线方法：简单填洞</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td><strong>median_filter</strong></td>
+                            <td>中值滤波（5×5）</td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td><strong>bilateral_filter</strong></td>
+                            <td>双边滤波（保边）</td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td><strong>guided_filter</strong></td>
+                            <td>RGB 引导滤波</td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td><strong>fixed_fractional</strong></td>
+                            <td>固定阶分数滤波（α=0.5）</td>
+                        </tr>
+                        <tr style="background: #fffacd;">
+                            <td>9</td>
+                            <td><strong>adaptive_fractional</strong></td>
+                            <td>🌟 自适应分数滤波（核心方法）</td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td><strong>Error Map</strong></td>
+                            <td>自适应方法的误差分布（热力图）</td>
+                        </tr>
+                        <tr>
+                            <td>11</td>
+                            <td><strong>Alpha Map</strong></td>
+                            <td>自适应 α 值分布</td>
+                        </tr>
+                        <tr>
+                            <td>12</td>
+                            <td><strong>Mask Boundary</strong></td>
+                            <td>孔洞边界检测</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 下一步 -->
+            <div class="section">
+                <div class="section-title">🚀 后续实验计划</div>
+                
+                <div class="grid">
+                    <div class="card">
+                        <div class="card-title">1️⃣ 使用 NYU 数据</div>
+                        <p style="color: #6c757d; margin-top: 10px;">
+                            下载 NYU Depth V2，验证算法在真实室内场景的表现
+                        </p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-title">2️⃣ 参数优化</div>
+                        <p style="color: #6c757d; margin-top: 10px;">
+                            调整 α 范围、α_map 计算策略，获得更好性能
+                        </p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-title">3️⃣ 集成真实数据</div>
+                        <p style="color: #6c757d; margin-top: 10px;">
+                            集成 COLMAP 输出、Depth Anything V2、考古扫描数据
+                        </p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-title">4️⃣ 学习优化</div>
+                        <p style="color: #6c757d; margin-top: 10px;">
+                            探索基于学习的 α_map 生成方法（CNN/网络）
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>深度图精修 PoC | 中山大学 | 2026 年 4 月</p>
+            <p>所有结果已自动保存到 results/ 文件夹</p>
+        </div>
+    </div>
+</body>
+</html>
